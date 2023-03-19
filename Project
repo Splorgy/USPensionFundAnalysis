@@ -1,0 +1,309 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import time
+import requests
+import yfinance as yt
+
+import warnings
+warnings.filterwarnings('ignore')
+
+df=pd.read_csv('\\Users\steph\Downloads\ESGScreening.csv', encoding="latin1")
+
+df.info() 
+
+# This database contains 6416 entries
+# It includes companies from ESG funds and what areas of sustainabltiy they operate in, such as deforestation free and climate change
+
+df.shape
+
+# The rows reflect the companies, the columns refect their sustainabiltiy areas of operation
+
+df.head
+
+df.dtypes
+
+df.columns
+
+# the below columns refer to the filters being used to ensure ESG funds contain companies focused on certain sustainability issues
+
+df.describe
+
+## CLEANING DATABASE FOR ANALYSIS
+
+ESG_df = df.copy()
+
+# Making a copy of the dataset to enable cleaner anlaysis without jepordising original file
+
+ESG_df.info
+
+ESG_df.drop(columns=['Fund profile: Shareclass name', 'Fund profile: Ticker', 'Fund profile: Fund name', 'Fund profile: Target date', 'Fund profile: Shareclass tickers'])
+
+# Dropping unnecceasry columns for readability and easier analysis
+
+ESG_df.isnull().sum()
+
+# we are left without values for 'Ticker', which are an unnecssary description for this exercise and can de dropped
+
+ESG_df.dropna(subset=['Fund profile: Ticker']).shape
+
+ESG_df.isnull().sum()
+
+ESG_df = ESG_df.rename(columns={'Fund profile: Fund name':'Fund'})
+ESG_df['Fund'].head()
+
+ESG_df = ESG_df.replace(",", "").replace("$", "")
+
+# Removing '$' and',' as some columns contain these symbols and may obstruct the analysis'
+
+#Removing month and day from column for easier analysis
+
+ESG_df['Fund profile: Shareclass inception date'] = pd.to_datetime(ESG_df['Fund profile: Shareclass inception date'])
+
+ESG_df['Fund profile: Shareclass inception date'] = ESG_df['Fund profile: Shareclass inception date'].dt.strftime('%Y')
+
+print(ESG_df['Fund profile: Shareclass inception date'])
+
+# Analysis
+
+# Insight 1 & 2 - How many US pension funds have a sustainability mandate
+
+ESG_df['Fund profile: Sustainability mandate'].value_counts()
+
+# How many funds have a sustainability mandate
+
+print(ESG_df['Fund profile: Fund net assets $'])
+
+ESGMandate = ESG_df.loc[df['Fund profile: Sustainability mandate'] == 'Y']
+
+ESGMandate['Fund profile: Sustainability mandate'].value_counts()
+
+# confirming the slicing and simplifying for planned analysis
+
+print(ESGMandate['Fund profile: Fund net assets $'])
+
+ESGMandate.groupby('Fund profile: Shareclass name').sum('Fund profile: Fund net assets')
+
+
+
+ESGM_Net = ESGMandate['Fund profile: Fund net assets $'].sum(axis=0)
+
+# calculating the total net asset value of the ESG funds with a sustainability mandate in $
+
+Total_Net = ESG_df['Fund profile: Fund net assets $'].sum(axis=0)
+
+# calculating the total net asset value of all ESG funds in $
+
+#Attempt to compare ESGM Net and Total Net 
+
+# Define the formulas
+ESGM_Net = 636051343833
+Total_Net = 82289110227007
+
+# Create the data for the pie chart
+data = [ESGM_Net, Total_Net]
+
+# Define the labels for the pie chart
+labels = ['ESGM_Net', 'Total_Net']
+
+# Define the colors for the pie chart
+colors = ['yellowgreen', 'lightskyblue']
+
+# Create the pie chart
+plt.pie(data, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+
+# Add a title to the pie chart
+plt.title('Share of US pension funds with a sustainability mandate in total funds screened for ESG purposes')
+
+# Show the pie chart
+plt.show()
+
+#Comparing the number of US pension funds with the number of funds that are members of the US-SIF - The Forum for Sustainable and Responsible Investment
+
+ESG_df['Fund profile: US-SIF member'].value_counts()
+
+ESGM_Total = 944
+EIS_Total = 151
+
+# Create the data for the pie chart
+data = [ESGM_Total, EIS_Total]
+
+# Define the labels for the pie chart
+labels = ['ESGM_Total', 'EIS_Total']
+
+# Define the colors for the pie chart
+colors = ['lightgreen', 'darkgreen']
+
+# Create the pie chart
+plt.pie(data, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+
+# Add a title to the pie chart
+plt.title('Share of US pension funds with a sustainability mandate that are also US-SIF members')
+
+# Show the pie chart
+plt.show()
+
+# Insight 2 - How many new ESG funds are being developed
+
+ESG_StartDate = ESG_df.loc[
+    (ESG_df['Fund profile: Sustainability mandate'] == 'Y') &
+    (ESG_df['Fund profile: Shareclass inception date'].isin(ESG_df['Fund profile: Shareclass inception date'].unique()))
+]
+
+print(ESG_StartDate['Fund profile: Shareclass inception date'].head(10))
+#confirming if unrelated dates have been removed
+
+# counting total years of pension funds' inception date to plot the growth of those with an ESG Mandate
+
+print(ESG_StartDate['Fund profile: Shareclass inception date'].value_counts())
+
+ESG_MandateGrowth = ESG_StartDate['Fund profile: Shareclass inception date'].value_counts()
+
+ESG_MandateGrowth.plot(kind='bar', figsize=(12, 8))
+plt.xlabel('Year')
+plt.ylabel('Number')
+plt.title('Growth of pension funds with a sustainability mandate')
+plt.show('ESG_MandateGrowth')
+
+# Insight 4 - What sustainability areas are US pension funds most concerned with and how are they performing?
+
+print(ESG_df['Fossil Free Funds: Fossil fuel grade'].value_counts())
+
+# This screening consists of different criteria to flag investments into fossil fuel companies in oil and gas along with
+# respective utilities powered by these energy sources.
+# Where 'A' equals to fossil fuel exposure is 0%, fossil fuel finance and insurance exposure is 0%
+# And 'F'equalts to fossil fuel exposure between 9% and 100%
+
+ESG_FossilFuelInvestment = ESG_StartDate['Fossil Free Funds: Fossil fuel grade'].value_counts()
+ESG_FossilFuelInvestment = ESG_FossilFuelInvestment.sort_index()
+
+ESG_FossilFuelInvestment.plot(kind='bar', x= 'Rank', y= 'Number', figsize=(8, 6))
+plt.xticks(rotation=0)
+plt.title('US Pension Funds ranked by degress of funding for fossil fuel companies/utilities')
+plt.show('ESG_MandateGrowth')
+
+print(ESG_df['Fossil Free Funds: Fossil fuel finance grade'].value_counts())
+
+# The fossil fuel finance screen consists of 60 of the largest commercial and investment banks. 
+# The data tracks the total fossil fuel financing of these banks over 2016-2021: 
+# lending, and underwriting debt and equity issuances. 
+# Where 'A' equals to fossil fuel exposure is 0%, fossil fuel finance and insurance exposure is 0%
+# And 'F'equalts to fossil fuel exposure between 9% and 100%
+
+ESG_FossilFuelFinanciers = ESG_StartDate['Fossil Free Funds: Fossil fuel finance grade'].value_counts()
+ESG_FossilFuelFinanciers = ESG_FossilFuelFinanciers.sort_index()
+
+ESG_FossilFuelFinanciers.plot(kind='bar', x= 'Rank', y= 'Number', figsize=(8, 6))
+plt.xticks(rotation=0)
+plt.title('US Pension Funds ranked by invesmenting into financial institutions funding fossil fuel sectors')
+plt.show('ESG_FossilFuelFinanciers')
+
+print(ESG_df['Fossil Free Funds: Fossil fuel insurance grade'].value_counts())
+
+# The fossil fuel insurance screen consists of 30 of the largest primary insurers and reinsurers. 
+# The data rates the fossil fuel insurance policies of these companies. 
+# Where 'A' equals to fossil fuel exposure is 0%, fossil fuel finance and insurance exposure is 0%
+# And 'F'equalts to fossil fuel exposure between 9% and 100%
+
+ESG_FossilFuelInsurers = ESG_StartDate['Fossil Free Funds: Fossil fuel insurance grade'].value_counts()
+ESG_FossilFuelInsurers = ESG_FossilFuelFinanciers.sort_index()
+
+ESG_FossilFuelInsurers.plot(kind='bar', x= 'Rank', y= 'Number', figsize=(8, 6))
+plt.xticks(rotation=0)
+plt.title('US Pension Funds ranked by invesment into insurers/reinsurers supporting fossil fuels')
+plt.show('ESG_FossilFuelInsurers')
+
+print(ESG_df['Deforestation Free Funds: Deforestation grade'].value_counts()) 
+
+# This screen analyses the sustainability credentials of corporations active in high-risk deforestation commodities
+# such as soy, palm, rubber and paper, and then ranks their actions
+
+ESG_DeforestationFunds = ESG_StartDate['Deforestation Free Funds: Deforestation grade'].value_counts()
+ESG_DeforestationFunds = ESG_DeforestationFunds.sort_index()
+
+ESG_DeforestationFunds.plot(kind='bar', x= 'Rank', y= 'Number', figsize=(8, 6))
+plt.xticks(rotation=0)
+plt.title('US Pension Funds ranked by invesment into companies contributing to deforestation')
+plt.show('ESG_DeforestationFunds')
+
+print(ESG_df['Gender Equality Funds: Gender equality grade'].value_counts()) 
+
+# This screen scores companies based on 19 criteria, including gender balance across the workforce, the gender pay gap, 
+# paid parental leave, and anti-sexual harassment policies
+
+print(ESG_df['Gun Free Funds: Civilian firearm grade'].value_counts()) 
+
+# This screen tracks investments into private and civilian firearm manufacturers and retailers 
+# in mitiary contacts and handgun, assault rifle, and ammunition sales
+
+# Insight 5 and 6 - What is the performance of the US pension funds with the highest sustainabltiy ratings?
+
+
+VGSRX = yt.Ticker('VGSRX')
+PFPRX = yt.Ticker('PFPRX')
+TAN = yt.Ticker('TAN')
+PHO = yt.Ticker('PHO')
+QCLN = yt.Ticker('QCLN')
+ETIHX = yt.Ticker('ETIHX')
+PBW = yt.Ticker('PBW')
+AWTIX = yt.Ticker('AWTIX')
+AWTAX = yt.Ticker('AWTAX')
+
+
+# The top ten US Pension Funds with an 'A' rating for the above categories 
+
+# PARWX
+PARWX = yt.Ticker('PARWX')
+
+PARWXdivs = PARWX.dividends
+PARWXdivs.plot(x= '$', y= 'Year')
+plt.title("PARWX Dividends")
+plt.xlabel("Year")
+plt.ylabel("Dividends $")
+
+PFPRXdivs = PFPRX.dividends
+PFPRXdivs.plot(x= '$', y= 'Year')
+plt.title("PFPRX Dividends")
+plt.xlabel("Year")
+plt.ylabel("Dividends $")
+
+VGSRXdivs = VGSRX.dividends
+VGSRXdivs.plot(x= '$', y= 'Year')
+plt.title("VGSRX Dividends")
+plt.xlabel("Year")
+plt.ylabel("Dividends $")
+
+TANdivs = TAN.dividends
+TANdivs.plot(x= '$', y= 'Year')
+plt.title("TAN Dividends")
+plt.xlabel("Year")
+plt.ylabel("Dividends $")
+
+PHOdivs = PHO.dividends
+PHOdivs.plot(x= '$', y= 'Year')
+plt.title("PHO Dividends")
+plt.xlabel("Year")
+plt.ylabel("Dividends $")
+
+tickers = ["PARWX","VGSRX", "PFPRX", "TAN", "PHO", "QCLN", "ETIHX", "PBW", "AWTIX", "AWTAX"]
+
+
+# Retrieve the historical data for each ticker and store it in a dictionary
+data = {}
+for ticker in tickers:
+    data[ticker] = yf.download(ticker, period="5y")["Adj Close"]
+
+# Combine the data into a single table using pandas
+table = pd.concat(data.values(), axis=1, keys=data.keys())
+
+# Print the table
+print(table)
+
+table.plot(figsize=(10, 6))
+
+plt.title("Share price of top 10 US pension funds in terms of climate and deforestation")
+plt.xlabel("Date")
+plt.ylabel("Price ($)")
+
+plt.show()
