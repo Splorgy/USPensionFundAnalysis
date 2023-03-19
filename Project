@@ -44,7 +44,8 @@ ESG_df.drop(columns=['Fund profile: Shareclass name', 'Fund profile: Ticker', 'F
 
 ESG_df.isnull().sum()
 
-# we are left without values for 'Ticker', which are an unnecssary description for this exercise and can de dropped
+# we are left without values for 'Ticker'
+# 'Ticker' will be used later in the analysis, but are an unnecssary description here and can de dropped
 
 ESG_df.dropna(subset=['Fund profile: Ticker']).shape
 
@@ -85,8 +86,6 @@ print(ESGMandate['Fund profile: Fund net assets $'])
 
 ESGMandate.groupby('Fund profile: Shareclass name').sum('Fund profile: Fund net assets')
 
-
-
 ESGM_Net = ESGMandate['Fund profile: Fund net assets $'].sum(axis=0)
 
 # calculating the total net asset value of the ESG funds with a sustainability mandate in $
@@ -97,26 +96,16 @@ Total_Net = ESG_df['Fund profile: Fund net assets $'].sum(axis=0)
 
 #Attempt to compare ESGM Net and Total Net 
 
-# Define the formulas
+# Defining the formulas captured above
 ESGM_Net = 636051343833
 Total_Net = 82289110227007
 
-# Create the data for the pie chart
+
 data = [ESGM_Net, Total_Net]
-
-# Define the labels for the pie chart
 labels = ['ESGM_Net', 'Total_Net']
-
-# Define the colors for the pie chart
 colors = ['yellowgreen', 'lightskyblue']
-
-# Create the pie chart
 plt.pie(data, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-
-# Add a title to the pie chart
 plt.title('Share of US pension funds with a sustainability mandate in total funds screened for ESG purposes')
-
-# Show the pie chart
 plt.show()
 
 #Comparing the number of US pension funds with the number of funds that are members of the US-SIF - The Forum for Sustainable and Responsible Investment
@@ -126,22 +115,11 @@ ESG_df['Fund profile: US-SIF member'].value_counts()
 ESGM_Total = 944
 EIS_Total = 151
 
-# Create the data for the pie chart
 data = [ESGM_Total, EIS_Total]
-
-# Define the labels for the pie chart
 labels = ['ESGM_Total', 'EIS_Total']
-
-# Define the colors for the pie chart
 colors = ['lightgreen', 'darkgreen']
-
-# Create the pie chart
 plt.pie(data, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-
-# Add a title to the pie chart
 plt.title('Share of US pension funds with a sustainability mandate that are also US-SIF members')
-
-# Show the pie chart
 plt.show()
 
 # Insight 2 - How many new ESG funds are being developed
@@ -239,7 +217,9 @@ print(ESG_df['Gun Free Funds: Civilian firearm grade'].value_counts())
 
 # Insight 5 and 6 - What is the performance of the US pension funds with the highest sustainabltiy ratings?
 
+# The top ten US Pension Funds with an 'A' rating for the above categories 
 
+PARWX = yt.Ticker('PARWX')
 VGSRX = yt.Ticker('VGSRX')
 PFPRX = yt.Ticker('PFPRX')
 TAN = yt.Ticker('TAN')
@@ -250,11 +230,6 @@ PBW = yt.Ticker('PBW')
 AWTIX = yt.Ticker('AWTIX')
 AWTAX = yt.Ticker('AWTAX')
 
-
-# The top ten US Pension Funds with an 'A' rating for the above categories 
-
-# PARWX
-PARWX = yt.Ticker('PARWX')
 
 PARWXdivs = PARWX.dividends
 PARWXdivs.plot(x= '$', y= 'Year')
@@ -288,16 +263,13 @@ plt.ylabel("Dividends $")
 
 tickers = ["PARWX","VGSRX", "PFPRX", "TAN", "PHO", "QCLN", "ETIHX", "PBW", "AWTIX", "AWTAX"]
 
-
-# Retrieve the historical data for each ticker and store it in a dictionary
 data = {}
 for ticker in tickers:
     data[ticker] = yf.download(ticker, period="5y")["Adj Close"]
 
-# Combine the data into a single table using pandas
 table = pd.concat(data.values(), axis=1, keys=data.keys())
 
-# Print the table
+
 print(table)
 
 table.plot(figsize=(10, 6))
